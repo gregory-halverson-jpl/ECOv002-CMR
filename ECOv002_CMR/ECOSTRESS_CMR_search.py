@@ -132,10 +132,16 @@ def main():
             df.to_csv(args.output, index=False)
             print(f"Results successfully saved to: {args.output}")
         else:
-            # Set pandas configuration to display wide tables nicely in terminal
-            pd.set_option('display.max_columns', None)
-            pd.set_option('display.width', 1000)
-            print("\n", df)
+            if "granule" not in df.columns:
+                raise ValueError("Expected 'granule' column in search results.")
+
+            # Preserve first-seen ordering while removing duplicates.
+            granules = df["granule"].dropna().astype(str).tolist()
+            ordered_unique_granules = list(dict.fromkeys(granules))
+
+            print("Granules:")
+            for granule in ordered_unique_granules:
+                print(granule)
 
     except Exception as err:
         print(f"Error: {err}", file=sys.stderr)
