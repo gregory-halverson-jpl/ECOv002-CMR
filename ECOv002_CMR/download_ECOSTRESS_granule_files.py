@@ -76,12 +76,12 @@ def download_ECOSTRESS_granule_files(
     # Check that there is exactly one granule listed and get granule ID
     granule_ID = get_granule_from_listing(CMR_file_listing_df)
 
-    # Validate that the provided orbit matches the granule ID's orbit
-    if orbit != granule_ID.orbit:
+    # Validate orbit only when a specific orbit was requested
+    if orbit is not None and orbit != granule_ID.orbit:
         raise ValueError(f"given orbit {orbit} does not match listed orbit {granule_ID.orbit}")
     
-    # Validate that the provided scene matches the granule ID's scene
-    if scene != granule_ID.scene:
+    # Validate scene only when a specific scene was requested
+    if scene is not None and scene != granule_ID.scene:
         raise ValueError(f"given scene {scene} does not match listed scene {granule_ID.scene}")
 
     # Validate that the provided tile matches the granule ID's tile

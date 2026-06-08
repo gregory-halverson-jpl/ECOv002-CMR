@@ -45,6 +45,7 @@ dev = [
 
 [project.scripts]
 ECOv002-search = "ECOv002_CMR.ECOSTRESS_CMR_search:main"
+ECOv002-download = "ECOv002_CMR.download_ECOSTRESS_granule:main"
 
 [tool.setuptools.packages.find]
 include = ["ECOv002_CMR"]
