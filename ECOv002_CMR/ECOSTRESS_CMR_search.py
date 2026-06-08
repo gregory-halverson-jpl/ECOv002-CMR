@@ -1,3 +1,5 @@
+import argparse
+import sys
 from typing import Union
 import requests
 import pandas as pd
@@ -21,46 +23,23 @@ def ECOSTRESS_CMR_search(
         scene: int = None,
         CMR_search_URL: str = CMR_SEARCH_URL) -> pd.DataFrame:
     """
-    Searches the CMR API for ECOSTRESS granules and constructs a DataFrame with granule information.
-
-    This function utilizes the `ECOSTRESS_CMR_search_links` function to retrieve URLs of 
-    ECOSTRESS granules from the CMR API. It then parses these URLs and extracts relevant 
-    information like product type, variable, orbit, scene, tile, file type, granule name, 
-    and filename to construct a pandas DataFrame.
+    Search the CMR API for ECOSTRESS granules and return parsed results.
 
     Args:
-        concept_ID: The concept ID of the ECOSTRESS collection to search (e.g., 'C2082256699-ECOSTRESS').
-        tile: The Sentinel-2 tile identifier for the area of interest (e.g., '10UEV').
-        start_date: The start date of the search period in YYYY-MM-DD format (e.g., '2023-08-01').
-        end_date: The end date of the search period in YYYY-MM-DD format (e.g., '2023-08-15').
-        CMR_search_URL: The base URL for the CMR search API. Defaults to the constant 
-                        CMR_SEARCH_URL defined in constants.py.
+        product: ECOSTRESS product code. Allowed values are:
+            L2T_LSTE, L2T_STARS, L3T_MET, L3T_SM, L3T_SEB, L3T_JET, L4T_ESI, L4T_WUE.
+        tile: Sentinel-2 tile identifier (for example, "11SLT").
+        start_date: Start date as a date object or parsable date string.
+        end_date: End date as a date object or parsable date string. Defaults to start_date.
+        orbit: Optional orbit number filter.
+        scene: Optional scene number filter.
+        CMR_search_URL: Base URL for CMR search.
 
     Returns:
-        A pandas DataFrame containing information about the ECOSTRESS granules. The DataFrame has 
-        the following columns:
-
-            - product: The ECOSTRESS product type (e.g., 'ECO1BGEO').
-            - variable: The measured variable (e.g., 'L2_LSTE_Day_Structure').
-            - orbit: The orbit number of the granule.
-            - scene: The scene number of the granule.
-            - tile: The Sentinel-2 tile identifier.
-            - type: The file type (e.g., 'GeoTIFF Data', 'JSON Metadata').
-            - granule: The full granule name.
-            - filename: The filename of the granule.
-            - URL: The URL of the granule.
+        pandas.DataFrame with matched granule metadata.
 
     Raises:
-        ValueError: If an unknown file type is encountered in the URLs.
-
-    Example:
-        >>> df = ECOSTRESS_CMR_search(
-        ...     concept_ID='C2082256699-ECOSTRESS', 
-        ...     tile='10UEV', 
-        ...     start_date='2023-08-01', 
-        ...     end_date='2023-08-15'
-        ... )
-        >>> print(df)
+        ValueError: If product is not one of the allowed product codes.
     """
     # Convert start_date and end_date to date objects if they are strings
     if isinstance(start_date, str):
@@ -72,7 +51,8 @@ def ECOSTRESS_CMR_search(
         end_date = parser.parse(end_date).date()
 
     if product not in CONCEPT_IDS:
-        raise ValueError(f"Unknown product type: {product}")
+        allowed_products = ", ".join(sorted(CONCEPT_IDS))
+        raise ValueError(f"Unknown product type: {product}. Allowed products: {allowed_products}")
     
     concept_ID = CONCEPT_IDS[product]
 
@@ -92,3 +72,75 @@ def ECOSTRESS_CMR_search(
     )
 
     return df
+
+
+def main():
+    """Command-line interface wrapper for ECOSTRESS_CMR_search."""
+    parser = argparse.ArgumentParser(
+        description="Search the NASA CMR API for ECOSTRESS granules and map them to Sentinel-2 tiles."
+    )
+    
+    allowed_product_codes = sorted(CONCEPT_IDS)
+    allowed_products = ", ".join(allowed_product_codes)
+
+    # Required arguments
+    parser.add_argument("-p", "--product", required=True, type=str,
+                        choices=allowed_product_codes,
+                        help=f"ECOSTRESS product code. Allowed values: {allowed_products}.")
+    parser.add_argument("-t", "--tile", required=True, type=str, 
+                        help="Sentinel-2 tile identifier (e.g., '10UEV').")
+    parser.add_argument("-s", "--start-date", required=True, type=str,
+                        metavar="YYYY-MM-DD",
+                        help="Start date of the search period (YYYY-MM-DD).")
+    
+    # Optional arguments
+    parser.add_argument("-e", "--end-date", type=str, default=None,
+                        metavar="YYYY-MM-DD",
+                        help="End date of the search period (YYYY-MM-DD). Defaults to start-date.")
+    parser.add_argument("--orbit", type=int, default=None, 
+                        help="Optional orbit number filter.")
+    parser.add_argument("--scene", type=int, default=None, 
+                        help="Optional scene number filter.")
+    parser.add_argument("-o", "--output", type=str, default=None, 
+                        help="Path to save the output CSV file. If not provided, results print to console.")
+    parser.add_argument("--cmr-url", type=str, default=CMR_SEARCH_URL, 
+                        help="Custom base URL for the CMR search API.")
+
+    args = parser.parse_args()
+
+    try:
+        print(f"Initializing search for {args.product} on tile {args.tile}...")
+        
+        df = ECOSTRESS_CMR_search(
+            product=args.product,
+            tile=args.tile,
+            start_date=args.start_date,
+            end_date=args.end_date,
+            orbit=args.orbit,
+            scene=args.scene,
+            CMR_search_URL=args.cmr_url
+        )
+
+        if df.empty:
+            print("No matching granules found for the given criteria.")
+            sys.exit(0)
+
+        print(f"Success! Found {len(df)} matching items.")
+
+        # Handle output target
+        if args.output:
+            df.to_csv(args.output, index=False)
+            print(f"Results successfully saved to: {args.output}")
+        else:
+            # Set pandas configuration to display wide tables nicely in terminal
+            pd.set_option('display.max_columns', None)
+            pd.set_option('display.width', 1000)
+            print("\n", df)
+
+    except Exception as err:
+        print(f"Error: {err}", file=sys.stderr)
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()

@@ -43,6 +43,9 @@ dev = [
 [project.urls]
 "Homepage" = "https://github.com/ECOSTRESS-Collection-2/ECOv002-CMR"
 
+[project.scripts]
+ECOv002-search = "ECOv002_CMR.ECOSTRESS_CMR_search:main"
+
 [tool.setuptools.packages.find]
 include = ["ECOv002_CMR"]
 exclude = ["data", "build", "tests"]

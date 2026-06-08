@@ -63,6 +63,8 @@ from datetime import date
 
 Use `ECOSTRESS_CMR_search()` to query the CMR API and get available granules without downloading:
 
+Valid product codes are: `L2T_LSTE`, `L2T_STARS`, `L3T_MET`, `L3T_SM`, `L3T_SEB`, `L3T_JET`, `L4T_ESI`, and `L4T_WUE`.
+
 ```python
 from ECOv002_CMR import ECOSTRESS_CMR_search
 
