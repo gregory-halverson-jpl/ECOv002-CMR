@@ -1,3 +1,5 @@
+import argparse
+import sys
 from typing import Union
 from os.path import join
 from datetime import date
@@ -10,6 +12,7 @@ from .constants import *
 from .granule_ID import GranuleID
 from .download_file import download_file
 from .download_ECOSTRESS_granule_files import download_ECOSTRESS_granule_files
+from .ECOSTRESS_CMR_search import ECOSTRESS_CMR_search
 
 def download_ECOSTRESS_granule(
         product: str, 
