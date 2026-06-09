@@ -16,7 +16,10 @@ clean:
 	find . -type d -name "__pycache__" -exec rm -rf {} +
 
 test:
-	pytest
+	pytest tests
+
+test-integration:
+	pytest test_drop_na.py test_parallel_performance.py
 
 build:
 	python -m build
