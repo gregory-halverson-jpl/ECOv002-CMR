@@ -142,9 +142,17 @@ def main():
 
     selected_products = list(dict.fromkeys(args.product))
     selected_tiles = list(dict.fromkeys(args.tile))
+    tile_label = "tile" if len(selected_tiles) == 1 else "tiles"
+    date_text = (
+        f"on {args.start_date}"
+        if args.end_date is None or args.end_date == args.start_date
+        else f"from {args.start_date} to {args.end_date}"
+    )
 
     try:
-        logger.info(f"Initializing search for {', '.join(selected_products)} on tile(s) {', '.join(selected_tiles)}...")
+        logger.info(
+            f"searching for {', '.join(selected_products)} on {tile_label} {', '.join(selected_tiles)} {date_text}"
+        )
         
         df = ECOSTRESS_CMR_search(
             product=selected_products,
