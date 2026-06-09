@@ -1,6 +1,7 @@
 import argparse
 import sys
 from typing import List, Union
+import logging
 import requests
 import pandas as pd
 import json
@@ -13,6 +14,8 @@ from sentinel_tiles import sentinel_tiles
 from .constants import *
 from .ECOSTRESS_CMR_search_links import ECOSTRESS_CMR_search_links
 from .interpret_ECOSTRESS_URLs import interpret_ECOSTRESS_URLs
+
+logger = logging.getLogger(__name__)
 
 def ECOSTRESS_CMR_search(
         product: Union[str, List[str]],
@@ -141,7 +144,7 @@ def main():
     selected_tiles = list(dict.fromkeys(args.tile))
 
     try:
-        print(f"Initializing search for {', '.join(selected_products)} on tile(s) {', '.join(selected_tiles)}...")
+        logger.info(f"Initializing search for {', '.join(selected_products)} on tile(s) {', '.join(selected_tiles)}...")
         
         df = ECOSTRESS_CMR_search(
             product=selected_products,
@@ -154,15 +157,15 @@ def main():
         )
 
         if df.empty:
-            print("No matching granules found for the given criteria.")
+            logger.info("No matching granules found for the given criteria.")
             sys.exit(0)
 
-        print(f"Success! Found {len(df)} matching items.")
+        logger.info(f"Success! Found {len(df)} matching items.")
 
         # Handle output target
         if args.output:
             df.to_csv(args.output, index=False)
-            print(f"Results successfully saved to: {args.output}")
+            logger.info(f"Results successfully saved to: {args.output}")
         else:
             if "granule" not in df.columns:
                 raise ValueError("Expected 'granule' column in search results.")
@@ -171,12 +174,12 @@ def main():
             granules = df["granule"].dropna().astype(str).tolist()
             ordered_unique_granules = list(dict.fromkeys(granules))
 
-            print("Granules:")
+            logger.info("Granules:")
             for granule in ordered_unique_granules:
-                print(granule)
+                logger.info(granule)
 
     except Exception as err:
-        print(f"Error: {err}", file=sys.stderr)
+        logger.info(f"Error: {err}")
         sys.exit(1)
 
 
