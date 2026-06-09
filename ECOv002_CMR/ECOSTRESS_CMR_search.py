@@ -1,6 +1,6 @@
 import argparse
 import sys
-from typing import Union
+from typing import List, Union
 import requests
 import pandas as pd
 import json
@@ -15,8 +15,8 @@ from .ECOSTRESS_CMR_search_links import ECOSTRESS_CMR_search_links
 from .interpret_ECOSTRESS_URLs import interpret_ECOSTRESS_URLs
 
 def ECOSTRESS_CMR_search(
-        product: str, 
-        tile: str, 
+        product: Union[str, List[str]],
+        tile: Union[str, List[str]],
         start_date: Union[date, str], 
         end_date: Union[date, str] = None,
         orbit: int = None,
@@ -26,9 +26,9 @@ def ECOSTRESS_CMR_search(
     Search the CMR API for ECOSTRESS granules and return parsed results.
 
     Args:
-        product: ECOSTRESS product code. Allowed values are:
+        product: ECOSTRESS product code or list of product codes. Allowed values are:
             L2T_LSTE, L2T_STARS, L3T_MET, L3T_SM, L3T_SEB, L3T_JET, L4T_ESI, L4T_WUE.
-        tile: Sentinel-2 tile identifier (for example, "11SLT").
+        tile: Sentinel-2 tile identifier or list of tile identifiers (for example, "11SLT").
         start_date: Start date as a date object or parsable date string.
         end_date: End date as a date object or parsable date string. Defaults to start_date.
         orbit: Optional orbit number filter.
@@ -39,7 +39,7 @@ def ECOSTRESS_CMR_search(
         pandas.DataFrame with matched granule metadata.
 
     Raises:
-        ValueError: If product is not one of the allowed product codes.
+        ValueError: If any product is invalid or no tile is provided.
     """
     # Convert start_date and end_date to date objects if they are strings
     if isinstance(start_date, str):
@@ -50,28 +50,57 @@ def ECOSTRESS_CMR_search(
     elif isinstance(end_date, str):
         end_date = parser.parse(end_date).date()
 
-    if product not in CONCEPT_IDS:
+    if isinstance(product, str):
+        products = [product]
+    else:
+        products = list(product)
+
+    if isinstance(tile, str):
+        tiles = [tile]
+    else:
+        tiles = list(tile)
+
+    if len(products) == 0:
+        raise ValueError("At least one product must be provided")
+
+    if len(tiles) == 0:
+        raise ValueError("At least one tile must be provided")
+
+    invalid_products = sorted({p for p in products if p not in CONCEPT_IDS})
+    if invalid_products:
         allowed_products = ", ".join(sorted(CONCEPT_IDS))
-        raise ValueError(f"Unknown product type: {product}. Allowed products: {allowed_products}")
-    
-    concept_ID = CONCEPT_IDS[product]
+        invalid_products_text = ", ".join(invalid_products)
+        raise ValueError(f"Unknown product type(s): {invalid_products_text}. Allowed products: {allowed_products}")
 
-    # Get the URLs of ECOSTRESS granules using the helper function
-    URLs = ECOSTRESS_CMR_search_links(
-        concept_ID=concept_ID, 
-        tile=tile, 
-        start_date=start_date.strftime("%Y-%m-%d"), 
-        end_date=end_date.strftime("%Y-%m-%d"), 
-        CMR_search_URL=CMR_search_URL
-    )
+    products = list(dict.fromkeys(products))
+    tiles = list(dict.fromkeys(tiles))
 
-    df = interpret_ECOSTRESS_URLs(
-        URLs=URLs,
-        orbit=orbit,
-        scene=scene
-    )
+    frames = []
+    for item in products:
+        concept_ID = CONCEPT_IDS[item]
+        for item_tile in tiles:
+            # Get the URLs of ECOSTRESS granules using the helper function
+            URLs = ECOSTRESS_CMR_search_links(
+                concept_ID=concept_ID,
+                tile=item_tile,
+                start_date=start_date.strftime("%Y-%m-%d"),
+                end_date=end_date.strftime("%Y-%m-%d"),
+                CMR_search_URL=CMR_search_URL
+            )
 
-    return df
+            df = interpret_ECOSTRESS_URLs(
+                URLs=URLs,
+                orbit=orbit,
+                scene=scene
+            )
+
+            if not df.empty:
+                frames.append(df)
+
+    if len(frames) == 0:
+        return pd.DataFrame()
+
+    return pd.concat(frames, ignore_index=True)
 
 
 def main():
@@ -84,11 +113,11 @@ def main():
     allowed_products = ", ".join(allowed_product_codes)
 
     # Required arguments
-    parser.add_argument("-p", "--product", required=True, type=str,
+    parser.add_argument("-p", "--product", required=True, type=str, nargs="+",
                         choices=allowed_product_codes,
-                        help=f"ECOSTRESS product code. Allowed values: {allowed_products}.")
-    parser.add_argument("-t", "--tile", required=True, type=str, 
-                        help="Sentinel-2 tile identifier (e.g., '10UEV').")
+                        help=f"One or more ECOSTRESS product codes. Allowed values: {allowed_products}.")
+    parser.add_argument("-t", "--tile", required=True, type=str, nargs="+",
+                        help="One or more Sentinel-2 tile identifiers (e.g., '10UEV').")
     parser.add_argument("-s", "--start-date", required=True, type=str,
                         metavar="YYYY-MM-DD",
                         help="Start date of the search period (YYYY-MM-DD).")
@@ -108,12 +137,15 @@ def main():
 
     args = parser.parse_args()
 
+    selected_products = list(dict.fromkeys(args.product))
+    selected_tiles = list(dict.fromkeys(args.tile))
+
     try:
-        print(f"Initializing search for {args.product} on tile {args.tile}...")
+        print(f"Initializing search for {', '.join(selected_products)} on tile(s) {', '.join(selected_tiles)}...")
         
         df = ECOSTRESS_CMR_search(
-            product=args.product,
-            tile=args.tile,
+            product=selected_products,
+            tile=selected_tiles,
             start_date=args.start_date,
             end_date=args.end_date,
             orbit=args.orbit,
