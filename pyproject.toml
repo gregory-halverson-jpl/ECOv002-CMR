@@ -18,6 +18,7 @@ dependencies = [
     "colored-logging",
     "ECOv002-granules",
     "geopandas",
+    "matplotlib<3.11",
     "numpy",
     "pandas",
     "rasterio",
