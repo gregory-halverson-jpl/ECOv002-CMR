@@ -2,7 +2,7 @@
 
 ![CI](https://github.com/ECOSTRESS-Collection-2/ECOv002-CMR/actions/workflows/ci.yml/badge.svg)
 
-The `ECOv002-CMR` Python package is a utility for searching and downloading ECOSTRESS Collection 2 tiled data product granules using the [Common Metadata Repository (CMR) API](https://cmr.earthdata.nasa.gov/search/site/docs/search/api.html).
+The `ECOv002-CMR` Python package is a utility for searching and downloading ECOSTRESS Collection 2 tiled data product granules using the [Common Metadata Repository (CMR) API](https://cmr.earthdata.nasa.gov/).
 
 [Gregory H. Halverson](https://github.com/gregory-halverson-jpl) (they/them)<br>
 [gregory.h.halverson@jpl.nasa.gov](mailto:gregory.h.halverson@jpl.nasa.gov)<br>
@@ -135,7 +135,7 @@ The package supports these ECOSTRESS Collection 2 products:
 | Product Code | Description | Key Variables |
 |-------------|-------------|---------------|
 | `L2T_LSTE` | Land Surface Temperature & Emissivity | LST, LST_err, QC, EmisWB |
-| `L2T_STARS` | Surface Reflectance & Albedo | NDVI, EVI, albedo, reflectance bands |
+| `L2T_STARS` | Surface Reflectance & Albedo | NDVI, albedo, reflectance bands |
 | `L3T_MET` | Meteorological Data | temperature, pressure, humidity |
 | `L3T_SM` | Soil Moisture | soil moisture estimates |
 | `L3T_SEB` | Surface Energy Balance | latent heat, sensible heat, net radiation |
@@ -168,7 +168,7 @@ Sample ECOSTRESS data at specific geographic points. Choose from two approaches:
 
 ### Why Date Range Sampling?
 
-ECOSTRESS acquisition times are not known in advance - they depend on the International Space Station's orbit and imaging schedule. The date range approach searches for all available data and samples it at your points, so you don't need to guess acquisition times.
+ECOSTRESS acquisition times are not known in advance - they depend on the International Space Station's orbit and imaging schedule. The date range approach searches for all available data and samples all found acquisitions.
 
 ### Sample at Single Point
 
@@ -257,7 +257,6 @@ results.to_csv('ecostress_samples.csv', index=False)
 - `ST_C` - Surface Temperature in Celsius (auto-converted from LST)
 - `LST` - Land Surface Temperature in Kelvin
 - `NDVI` - Normalized Difference Vegetation Index  
-- `EVI` - Enhanced Vegetation Index
 - `albedo` - Surface albedo
 - `SAVI` - Soil Adjusted Vegetation Index
 - `QC` - Quality control flags
@@ -271,7 +270,7 @@ results = sample_points_over_date_range(
     geometry=gdf,
     start_date=date(2025, 6, 1),
     end_date=date(2025, 6, 30),
-    layers=['ST_C', 'NDVI', 'EVI', 'QC']  # Custom selection
+    layers=['ST_C', 'NDVI', 'QC']  # Custom selection
 )
 ```
 
@@ -290,6 +289,7 @@ results = sample_points_over_date_range(
     start_date=date(2025, 6, 1),
     end_date=date(2025, 6, 30)
 )
+```
 
 ### Batch Sampling with Specific Datetimes
 
@@ -320,7 +320,7 @@ gdf = gpd.GeoDataFrame(data, crs='EPSG:4326')
 # Define products and variables to sample
 products = {
     'L2T_LSTE': 'LST',                    # Land Surface Temperature
-    'L2T_STARS': ['NDVI', 'albedo']      # NDVI and Albedo
+    'L2T_STARS': ['NDVI', 'albedo']       # NDVI and Albedo
 }
 
 # Sample all points
@@ -380,8 +380,6 @@ for product, variables in products.items():
         all_files[variable] = var_files
         print(f"{variable}: {len(var_files)} files")
 ```
-
-### Advanced Point Sampling Options
 
 ### Advanced Point Sampling Options
 
